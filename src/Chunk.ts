@@ -771,7 +771,6 @@ export default class Chunk {
 		this.indentString = getIndentString(this.orderedModules, options);
 
 		const renderOptions: RenderOptions = {
-			legacy: options.legacy,
 			freeze: options.freeze !== false,
 			namespaceToStringTag: options.namespaceToStringTag === true,
 			indent: this.indentString,
