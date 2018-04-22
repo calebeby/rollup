@@ -402,7 +402,9 @@ export default class Chunk {
 		}
 	}
 
-	private prepareDynamicImports({ format }: OutputOptions) {
+	private prepareDynamicImports({ format, compact }: OutputOptions) {
+		const _ = compact ? '' : ' ';
+		const nl = compact ? '' : '\n';
 		const esm = format === 'es';
 		let dynamicImportMechanism: DynamicImportMechanism;
 		let hasDynamicImports = false;
@@ -411,15 +413,17 @@ export default class Chunk {
 				dynamicImportMechanism = {
 					left: 'Promise.resolve(require(',
 					right: '))',
-					interopLeft: 'Promise.resolve({ default: require(',
-					interopRight: ') })'
+					interopLeft: `Promise.resolve({${_}default:${_}require(`,
+					interopRight: `)${_}})`
 				};
 			} else if (format === 'amd') {
+				const resolve = compact ? 'c' : 'resolve';
+				const reject = compact ? 'e' : 'reject';
 				dynamicImportMechanism = {
-					left: 'new Promise(function (resolve, reject) { require([',
-					right: '], resolve, reject) })',
-					interopLeft: 'new Promise(function (resolve, reject) { require([',
-					interopRight: '], function (m) { resolve({ default: m }) }, reject) })'
+					left: `new Promise(function${_}(${resolve},${_}${reject})${_}{${_}require([`,
+					right: `],${_}${resolve},${_}${reject})${_}})`,
+					interopLeft: `new Promise(function${_}(resolve,${_}reject)${_}{${_}require([`,
+					interopRight: `],${_}function${_}(m)${_}{${_}resolve({${_}default:m${_}})${_}},${_}reject)${_}})`
 				};
 			} else if (format === 'system') {
 				dynamicImportMechanism = {
@@ -766,11 +770,14 @@ export default class Chunk {
 	preRender(options: OutputOptions, inputBase: string) {
 		timeStart('render modules', 3);
 
-		let magicString = new MagicStringBundle({ separator: '\n\n' });
+		let magicString = new MagicStringBundle({ separator: options.compact ? '' : '\n\n' });
 		this.usedModules = [];
-		this.indentString = getIndentString(this.orderedModules, options);
+		this.indentString = options.compact ? '' : getIndentString(this.orderedModules, options);
+
+		const nl = options.compact ? '' : '\n';
 
 		const renderOptions: RenderOptions = {
+			compact: options.compact,
 			legacy: options.legacy,
 			freeze: options.freeze !== false,
 			namespaceToStringTag: options.namespaceToStringTag === true,
@@ -799,13 +806,13 @@ export default class Chunk {
 
 				if (namespace.needsNamespaceBlock) {
 					const rendered = namespace.renderBlock(renderOptions);
-					if (namespace.renderFirst()) hoistedSource += '\n' + rendered;
+					if (namespace.renderFirst()) hoistedSource += nl + rendered;
 					else magicString.addSource(new MagicString(rendered));
 				}
 			}
 		}
 
-		if (hoistedSource) magicString.prepend(hoistedSource + '\n\n');
+		if (hoistedSource) magicString.prepend(hoistedSource + nl + nl);
 
 		this.renderedSource = magicString.trim();
 		this.renderedSourceLength = undefined;
@@ -988,6 +995,8 @@ export default class Chunk {
 	render(options: OutputOptions, addons: Addons) {
 		timeStart('render format', 3);
 
+		const nl = options.compact ? '' : '\n';
+
 		if (!this.renderedSource)
 			throw new Error('Internal error: Chunk render called before preRender');
 
@@ -1033,8 +1042,8 @@ export default class Chunk {
 			},
 			options
 		);
-		if (addons.banner) magicString.prepend(addons.banner + '\n');
-		if (addons.footer) magicString.append('\n' + addons.footer);
+		if (addons.banner) magicString.prepend(addons.banner + nl);
+		if (addons.footer) magicString.append(nl + addons.footer);
 		const prevCode = magicString.toString();
 
 		timeEnd('render format', 3);
@@ -1073,7 +1082,7 @@ export default class Chunk {
 					timeEnd('sourcemap', 3);
 				}
 
-				if (code[code.length - 1] !== '\n') code += '\n';
+				if (options.compact !== true && code[code.length - 1] !== '\n') code += '\n';
 				return { code, map };
 			}
 		);
