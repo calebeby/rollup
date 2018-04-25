@@ -4,10 +4,12 @@ export default function getExportBlock(
 	exports: ChunkExports,
 	dependencies: ChunkDependencies,
 	exportMode: string,
-	compact: boolean,
 	interop: boolean,
-	mechanism = 'return'
+	compact: boolean,
+	mechanism = 'return '
 ) {
+	const _ = compact ? '' : ' ';
+
 	if (exportMode === 'default') {
 		let local;
 		exports.some(expt => {
@@ -30,10 +32,8 @@ export default function getExportBlock(
 				});
 			});
 		}
-		return `${mechanism} ${local};`;
+		return `${mechanism}${local};`;
 	}
-
-	const _ = compact ? '' : ' ';
 
 	let exportBlock = '';
 
