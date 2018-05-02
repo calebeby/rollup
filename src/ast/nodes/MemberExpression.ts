@@ -20,7 +20,7 @@ const validProp = /^[a-zA-Z_$][a-zA-Z_$0-9]*$/;
 const globalImportMetaUrlMechanism = `(typeof document !== 'undefined' ? document.currentScript && document.currentScript.src || location.href : new URL('file:' + __filename).href)`;
 const importMetaUrlMechanisms: Record<string, string> = {
 	amd: `new URL(module.uri.startsWith('file:') ? module.uri : 'file:' + module.uri).href`,
-	cjs: `new (typeof URL !== 'undefined' ? URL : require('url'))('file:' + __filename).href`,
+	cjs: `new (typeof URL !== 'undefined' ? URL : require('url').URL)('file:' + __filename).href`,
 	iife: globalImportMetaUrlMechanism,
 	umd: globalImportMetaUrlMechanism
 };
