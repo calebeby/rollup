@@ -13,17 +13,9 @@ import * as NodeType from './NodeType';
 import { NodeRenderOptions, RenderOptions } from '../../utils/renderHelpers';
 import { isUnknownKey, ObjectPath, ObjectPathKey, UNKNOWN_KEY } from '../values';
 import { BLANK } from '../../utils/blank';
-import MetaProperty, { isMetaProperty } from './MetaProperty';
+import MetaProperty from './MetaProperty';
 
 const validProp = /^[a-zA-Z_$][a-zA-Z_$0-9]*$/;
-
-const globalImportMetaUrlMechanism = `(typeof document !== 'undefined' ? document.currentScript && document.currentScript.src || location.href : new URL('file:' + __filename).href)`;
-const importMetaUrlMechanisms: Record<string, string> = {
-	amd: `new URL(module.uri.startsWith('file:') ? module.uri : 'file:' + module.uri).href`,
-	cjs: `new (typeof URL !== 'undefined' ? URL : require('url').URL)('file:' + __filename).href`,
-	iife: globalImportMetaUrlMechanism,
-	umd: globalImportMetaUrlMechanism
-};
 
 function getPropertyKey(memberExpression: MemberExpression): ObjectPathKey {
 	return memberExpression.computed
@@ -203,15 +195,14 @@ export default class MemberExpression extends NodeBase {
 				storeName: true,
 				contentOnly: true
 			});
-		} else if (isMetaProperty(this.object) && this.object.meta.name === 'import') {
+		} else if (this.object instanceof MetaProperty && this.object.meta.name === 'import') {
 			this.context.hasImportMeta = true;
-			if (options.format === 'system') {
-				const object: MetaProperty = this.object;
-				code.overwrite(object.meta.start, object.meta.end, 'module');
-			} else {
-				const importMetaUrlMechanism = importMetaUrlMechanisms[options.format];
-				if (importMetaUrlMechanism) code.overwrite(this.start, this.end, importMetaUrlMechanism);
-			}
+			const importMetaMechanism = this.object.renderImportMetaMechanism(
+				code,
+				this.property instanceof Identifier && this.property.name,
+				options.format
+			);
+			if (importMetaMechanism) code.overwrite(this.start, this.end, importMetaMechanism);
 		} else {
 			if (isCalleeOfDifferentParent) {
 				code.appendRight(this.start, '0, ');
