@@ -48,44 +48,46 @@ export default class NamespaceVariable extends Variable {
 
 	renderBlock(options: RenderOptions) {
 		const _ = options.compact ? '' : ' ';
-		const nl = options.compact ? '' : '\n';
+		const n = options.compact ? '' : '\n';
+		const t = options.indent;
 
 		const members = Object.keys(this.originals).map(name => {
 			const original = this.originals[name];
 
 			if ((this.referencedEarly || original.isReassigned) && !options.legacy) {
-				return `${options.indent}get ${name}${_}()${_}{${_}return${_}${original.getName()};${_}}`;
+				return `${t}get ${name}${_}()${_}{${_}return${_}${original.getName()}${
+					options.compact ? '' : ';'
+				}${_}}`;
 			}
 
 			if (options.legacy && reservedWords.indexOf(name) !== -1) name = `'${name}'`;
-			return `${options.indent}${name}: ${original.getName()}`;
+			return `${t}${name}: ${original.getName()}`;
 		});
 
 		const name = this.getName();
 
 		const callee = options.freeze
-			? `${options.compact ? '' : '/*#__PURE__*/'}${
-					options.legacy ? `(Object.freeze${_}||${_}Object)` : `Object.freeze`
-			  }`
+			? `/*#__PURE__*/${options.legacy ? `(Object.freeze${_}||${_}Object)` : `Object.freeze`}`
 			: '';
 
 		let output = `${this.context.varOrConst} ${name} = ${
 			options.namespaceToStringTag
-				? `{${nl}${members.join(`,${nl}`)}${nl}};`
-				: `${callee}({${nl}${members.join(`,${nl}`)}${nl}});`
+				? `{${n}${members.join(`,${n}`)}${n}};`
+				: `${callee}({${n}${members.join(`,${n}`)}${n}});`
 		}`;
 
 		if (options.namespaceToStringTag) {
-			const t = options.indent;
-			output += `${nl}if${_}(typeof Symbol${_}!==${_}'undefined'${_}&&${_}Symbol.toStringTag)${nl}`;
-			output += `${t}Object.defineProperty(${name},${_}Symbol.toStringTag,${_}{${_}value:${_}'Module'${_}});${nl}`;
-			output += `else${nl}`;
-			output += `${t}Object.defineProperty(${name},${_}'toString',${_}{${_}value:${_}function${_}()${_}{${_}return${_}'[object Module]'${_}}${_}});${nl}`;
+			output += `${n}if${_}(typeof Symbol${_}!==${_}'undefined'${_}&&${_}Symbol.toStringTag)${n}`;
+			output += `${t}Object.defineProperty(${name},${_}Symbol.toStringTag,${_}{${_}value:${_}'Module'${_}});${n}`;
+			output += `else${n}`;
+			output += `${t}Object.defineProperty(${name},${_}'toString',${_}{${_}value:${_}function${_}()${_}{${_}return${_}'[object Module]'${
+				options.compact ? ';' : ''
+			}${_}}${_}});${n}`;
 			output += `${callee}(${name});`;
 		}
 
 		if (options.systemBindings && this.exportName) {
-			output += `${nl}exports('${this.exportName}',${_}${name});`;
+			output += `${n}exports('${this.exportName}',${_}${name});`;
 		}
 
 		return output;
